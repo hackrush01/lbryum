@@ -16,7 +16,7 @@ labeled as 2.7.1. Subsequent releases will follow
   *
 
 ### Fixed
-  *
+  * Fixed getclaimbyoutpoint to return None if claim does not exist
   *
 
 ### Deprecated
