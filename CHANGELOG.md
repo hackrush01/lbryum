@@ -16,7 +16,7 @@ labeled as 2.7.1. Subsequent releases will follow
   *
 
 ### Fixed
-  *
+  * Fixed wallet error from an address being used for change as well as a claim
   *
 
 ### Deprecated

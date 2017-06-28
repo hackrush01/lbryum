@@ -627,7 +627,8 @@ class Abstract_Wallet(PrintError):
     def get_addr_utxo(self, address):
         coins, spent = self.get_addr_io(address)
         for txi in spent:
-            coins.pop(txi)
+            if txi in coins:
+                coins.pop(txi)
         return coins
 
     # return the total amount ever received by an address
