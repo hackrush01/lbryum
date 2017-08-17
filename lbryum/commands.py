@@ -596,7 +596,7 @@ class Commands(object):
         balance = 0
         out = []
         for item in self.wallet.get_history():
-            tx_hash, conf, value, timestamp, balance = item
+            tx_hash, conf, value, timestamp, balance, tx_type, claim_id = item
             try:
                 time_str = datetime.datetime.fromtimestamp(timestamp).isoformat(' ')[:-3]
             except Exception:
@@ -608,8 +608,10 @@ class Commands(object):
                 'date': "%16s" % time_str,
                 'label': label,
                 'value': float(value) / float(COIN) if value is not None else None,
-                'confirmations': conf}
-            )
+                'confirmations': conf,
+                'type': tx_type,
+                'claim_id': claim_id.decode('hex')
+            })
         return out
 
     @command('w')

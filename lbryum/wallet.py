@@ -938,6 +938,20 @@ class Abstract_Wallet(PrintError):
         # Write updated TXI, TXO etc.
         self.save_transactions()
 
+    def find_tx_type(self, tx_hash):
+        tx = self.transactions.get(tx_hash)
+        tx.deserialize()
+        txout = tx.outputs()[0]
+        if bool(txout[0] & TYPE_CLAIM):
+            return ("claim", "---")
+        elif bool(txout[0] & TYPE_SUPPORT):
+            return ("support", txout[1][0][1])
+        elif bool(txout[0] & TYPE_UPDATE):
+            return ("update", txout[1][0][1])
+        else:
+            return ("unbound", "---")
+
+
     def get_history(self, domain=None):
         from collections import defaultdict
         # get domain
@@ -960,7 +974,8 @@ class Abstract_Wallet(PrintError):
         history = []
         for tx_hash, delta in tx_deltas.items():
             conf, timestamp = self.get_confirmations(tx_hash)
-            history.append((tx_hash, conf, delta, timestamp))
+            tx_type, claim_id = self.find_tx_type(tx_hash)
+            history.append((tx_hash, conf, delta, timestamp, tx_type, claim_id))
         history.sort(key=lambda x: self.get_txpos(x[0]))
         history.reverse()
 
@@ -969,8 +984,8 @@ class Abstract_Wallet(PrintError):
         balance = c + u + x
         h2 = []
         for item in history:
-            tx_hash, conf, delta, timestamp = item
-            h2.append((tx_hash, conf, delta, timestamp, balance))
+            tx_hash, conf, delta, timestamp, tx_type, claim_id = item
+            h2.append((tx_hash, conf, delta, timestamp, balance, tx_type, claim_id))
             if balance is None or delta is None:
                 balance = None
             else:
