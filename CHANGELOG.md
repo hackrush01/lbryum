@@ -24,11 +24,11 @@ labeled as 2.7.1. Subsequent releases will follow
   *
 
 ### Added
-  *
+  * Added additional fields(type, is\_tip, claim\_id) in tx history to support tipping.
   *
 
 ### Removed
-  *
+  * Removed label from tx history
   *
 
 
