@@ -32,7 +32,7 @@ from lbryum.transaction import Transaction
 from lbryum.transaction import decode_claim_script, deserialize as deserialize_transaction
 from lbryum.transaction import get_address_from_output_script, script_GetOp
 from lbryum.errors import InvalidProofError, NotEnoughFunds
-from lbryum.util import format_satoshis, rev_hex
+from lbryum.util import format_satoshis, rev_hex, filter_name_claim_list
 from lbryum.mnemonic import Mnemonic
 
 
@@ -595,21 +595,34 @@ class Commands(object):
         """Wallet history. Returns the transaction history of your wallet."""
         balance = 0
         out = []
+        filtered_name_claims = filter_name_claim_list(self.getnameclaims())
         for item in self.wallet.get_history():
             tx_hash, conf, value, timestamp, balance = item
+
+            if tx_hash in filtered_name_claims:
+                tip = filtered_name_claims[tx_hash]['is_tip']
+                category = filtered_name_claims[tx_hash]['type']
+                claim_id = filtered_name_claims[tx_hash]['claim_id']
+            else:
+                category = "unbound"
+                claim_id = "----"
+                tip = False
+
             try:
                 time_str = datetime.datetime.fromtimestamp(timestamp).isoformat(' ')[:-3]
             except Exception:
                 time_str = "----"
-            label = self.wallet.get_label(tx_hash)
+
             out.append({
                 'txid': tx_hash,
                 'timestamp': timestamp,
                 'date': "%16s" % time_str,
-                'label': label,
                 'value': float(value) / float(COIN) if value is not None else None,
-                'confirmations': conf}
-            )
+                'confirmations': conf,
+                'type': category,
+                'claim_id': claim_id,
+                'is_tip': tip
+            })
         return out
 
     @command('w')
