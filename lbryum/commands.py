@@ -603,10 +603,12 @@ class Commands(object):
                 tip = filtered_name_claims[tx_hash]['is_tip']
                 category = filtered_name_claims[tx_hash]['type']
                 claim_id = filtered_name_claims[tx_hash]['claim_id']
+                claim_name = filtered_name_claims[tx_hash]['claim_name']
             else:
-                category = "unbound"
+                category = "Unbound"
                 claim_id = "----"
                 tip = False
+                claim_name = "----"
 
             try:
                 time_str = datetime.datetime.fromtimestamp(timestamp).isoformat(' ')[:-3]
@@ -621,7 +623,8 @@ class Commands(object):
                 'confirmations': conf,
                 'type': category,
                 'claim_id': claim_id,
-                'is_tip': tip
+                'is_tip': tip,
+                'claim_name': claim_name
             })
         return out
 
