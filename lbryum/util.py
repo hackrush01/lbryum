@@ -8,6 +8,7 @@ from collections import defaultdict
 from decimal import Decimal
 import json
 import time
+from lbryum.constants import NO_SIGNATURE
 
 log = logging.getLogger("lbryum")
 
@@ -202,3 +203,31 @@ def var_int(i):
         return "fe" + int_to_hex(i, 4)
     else:
         return "ff" + int_to_hex(i, 8)
+
+
+# This function comes from bitcointools, bct-LICENSE.txt.
+def long_hex(bytes):
+    return bytes.encode('hex_codec')
+
+
+# This function comes from bitcointools, bct-LICENSE.txt.
+def short_hex(bytes):
+    t = bytes.encode('hex_codec')
+    if len(t) < 11:
+        return t
+    return t[0:4] + "..." + t[-4:]
+
+
+def parse_sig(x_sig):
+    s = []
+    for sig in x_sig:
+        if sig[-2:] == '01':
+            s.append(sig[:-2])
+        else:
+            assert sig == NO_SIGNATURE
+            s.append(None)
+    return s
+
+
+def is_extended_pubkey(x_pubkey):
+    return x_pubkey[0:2] in ['fe', 'ff']

@@ -1,7 +1,7 @@
-from lbryum.util import rev_hex, int_to_hex
+from lbryum.util import rev_hex, int_to_hex, is_extended_pubkey
 from lbryum.hashing import hash_160
 from lbryum.base import DecodeBase58Check, EncodeBase58Check
-from lbryum.transaction import Transaction, is_extended_pubkey
+from lbryum.transaction import Transaction
 from lbryum.lbrycrd import pw_decode, pw_encode, hash_160_to_bc_address, address_from_private_key
 from lbryum.lbrycrd import public_key_to_bc_address, deserialize_xkey, bip32_public_derivation
 from lbryum.lbrycrd import CKD_pub, bip32_private_key
