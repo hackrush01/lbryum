@@ -554,14 +554,8 @@ class Transaction(object):
         self._outputs.extend(outputs)
         self.raw = None
 
-    def input_value(self):
-        return sum(x['value'] for x in self.inputs())
-
     def output_value(self):
         return sum(val for tp, addr, val in self.outputs())
-
-    def get_fee(self):
-        return self.input_value() - self.output_value()
 
     def is_final(self):
         return not any([x.get('sequence') < 0xffffffff - 1 for x in self.inputs()])
