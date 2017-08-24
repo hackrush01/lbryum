@@ -590,6 +590,28 @@ class Commands(object):
         tx = self._mktx(outputs, tx_fee, change_addr, domain, nocheck, unsigned)
         return self.network.synchronous_get(('blockchain.transaction.broadcast', [str(tx)]))
 
+    @command('wn')
+    def get_transaction_fee(self, txid):
+        """
+        Get the fee for a transaction by txid
+        """
+
+        if txid in self.wallet.transactions:
+            tx = self.wallet.transactions[txid]
+        else:
+            tx = Transaction(self.network.synchronous_get(('blockchain.transaction.get', [txid])))
+        fee = 0
+
+        for tx_in in tx.inputs():
+            # add up the amounts for the txos used as inputs
+            if tx_in['prevout_hash'] in self.wallet.transactions:
+                spent_tx = self.wallet.transactions[tx_in['prevout_hash']]
+            else:
+                spent_tx = Transaction(self.network.synchronous_get(('blockchain.transaction.get',
+                                                                     [tx_in['prevout_hash']])))
+            fee += spent_tx.outputs()[tx_in['prevout_n']][2]
+        return float(Decimal(fee - tx.output_value()) / Decimal(COIN))
+
     @command('w')
     def history(self):
         """Wallet history. Returns the transaction history of your wallet."""
@@ -604,6 +626,7 @@ class Commands(object):
             label = self.wallet.get_label(tx_hash)
             out.append({
                 'txid': tx_hash,
+                'fee': self.get_transaction_fee(tx_hash),
                 'timestamp': timestamp,
                 'date': "%16s" % time_str,
                 'label': label,
