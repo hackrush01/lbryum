@@ -26,6 +26,7 @@ labeled as 2.7.1. Subsequent releases will follow
 ### Added
   * Added `get_transaction_fee` command
   * Added `fee` field to the response for `history`
+  * Added optional `include_tip_info` argument to `history`
 
 ### Removed
   *
