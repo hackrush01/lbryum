@@ -32,7 +32,7 @@ from lbryum.transaction import Transaction
 from lbryum.transaction import decode_claim_script, deserialize as deserialize_transaction
 from lbryum.transaction import get_address_from_output_script, script_GetOp
 from lbryum.errors import InvalidProofError, NotEnoughFunds
-from lbryum.util import format_satoshis, rev_hex, filter_name_claim_list
+from lbryum.util import format_satoshis, rev_hex
 from lbryum.mnemonic import Mnemonic
 
 
@@ -590,25 +590,56 @@ class Commands(object):
         tx = self._mktx(outputs, tx_fee, change_addr, domain, nocheck, unsigned)
         return self.network.synchronous_get(('blockchain.transaction.broadcast', [str(tx)]))
 
+    @staticmethod
+    def _filter_name_claim_list(name_claims):
+        filtered_list = dict()
+
+        def prettyCategory(category):
+            return category[0].upper() + category[1:]
+
+        def is_tip(address):
+            for name_claim in name_claims:
+                if name_claim['address'] == address:
+                    if name_claim['category'] == "claim":
+                        return True
+
+            return False
+
+        for name_claim in name_claims:
+            if name_claim['category'] == "support":
+                tip = is_tip(name_claim['address'])
+            else:
+                tip = False
+
+            filtered_list[name_claim['txid']] = {
+                'type': prettyCategory(name_claim['category']),
+                'claim_id': name_claim['claim_id'],
+                'is_tip': tip,
+                'claim_name': name_claim['name']
+            }
+
+        return filtered_list
+
     @command('w')
-    def history(self):
+    def history(self, include_tip_info=False):
         """Wallet history. Returns the transaction history of your wallet."""
         balance = 0
         out = []
-        filtered_name_claims = filter_name_claim_list(self.getnameclaims())
+        if include_tip_info:
+            filtered_name_claims = self._filter_name_claim_list(self.getnameclaims())
         for item in self.wallet.get_history():
             tx_hash, conf, value, timestamp, balance = item
 
-            if tx_hash in filtered_name_claims:
+            if include_tip_info and (tx_hash in filtered_name_claims):
                 tip = filtered_name_claims[tx_hash]['is_tip']
                 category = filtered_name_claims[tx_hash]['type']
                 claim_id = filtered_name_claims[tx_hash]['claim_id']
                 claim_name = filtered_name_claims[tx_hash]['claim_name']
             else:
                 category = "Unbound"
-                claim_id = "----"
+                claim_id = ""
                 tip = False
-                claim_name = "----"
+                claim_name = ""
 
             try:
                 time_str = datetime.datetime.fromtimestamp(timestamp).isoformat(' ')[:-3]
@@ -2046,7 +2077,8 @@ command_options = {
                           "do not check for an existing unspent claim before making a new one"),
     'revoke': (None, "--revoke", "if true, create a new signing key and revoke the old one"),
     'val': (None, '--value', 'claim value'),
-    'timeout': (None, '--timeout', 'timeout')
+    'timeout': (None, '--timeout', 'timeout'),
+    'include_tip_info': (None, "--include_tip_info", "if true, checks the tx list for tip txns")
 }
 
 
