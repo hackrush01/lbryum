@@ -202,33 +202,3 @@ def var_int(i):
         return "fe" + int_to_hex(i, 4)
     else:
         return "ff" + int_to_hex(i, 8)
-
-
-def filter_name_claim_list(name_claims):
-    filtered_list = dict()
-
-    def prettyCategory(category):
-        return category[0].upper() + category[1:]
-
-    def is_tip(address):
-        for name_claim in name_claims:
-            if name_claim['address'] == address:
-                if name_claim['category'] == "claim":
-                    return True
-
-        return False
-
-    for name_claim in name_claims:
-        if name_claim['category'] == "support":
-            tip = is_tip(name_claim['address'])
-        else:
-            tip = False
-
-        filtered_list[name_claim['txid']] = {
-            'type': prettyCategory(name_claim['category']),
-            'claim_id': name_claim['claim_id'],
-            'is_tip': tip,
-            'claim_name': name_claim['name']
-        }
-
-    return filtered_list
