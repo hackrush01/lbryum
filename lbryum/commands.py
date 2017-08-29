@@ -674,37 +674,47 @@ class Commands(object):
 
         return tip_txns
 
-    @command('w')
+    @command('wn')
     def history(self, include_tip_info=False):
         """Wallet history. Returns the transaction history of your wallet."""
-        balance = 0
         out = []
         if include_tip_info:
             tip_txns = self._get_tip_txns(self.getnameclaims())
         for item in self.wallet.get_history():
             tx_hash, conf, value, timestamp, balance = item
-            aux_tx_info = self.get_auxilary_info_tx(tx_hash)
 
-            tip = False
-            if include_tip_info:
-                tip = True if tx_hash in tip_txns else False
+            tx = self.wallet.transactions[tx_hash]
 
             try:
                 time_str = datetime.datetime.fromtimestamp(timestamp).isoformat(' ')[:-3]
             except Exception:
                 time_str = "----"
 
-            out.append({
+            label = self.wallet.get_label(tx_hash)
+
+            tip_info = []
+
+            for nout, tx_o in enumerate(tx.outputs()):
+                if include_tip_info and tx_o[0] & TYPE_SUPPORT:
+                    supported_name, supported_claim_id = tx_o[1][0]
+                    supported_claim_id = encode_claim_id_hex(supported_claim_id)
+                    supported_claim = self.getclaimbyid(supported_claim_id)
+                    if supported_claim['address'] == tx_o[1][1]:
+                        tip_info.append({
+                            'tipped_claim_id': supported_claim_id,
+                            'tipped_claim_name': supported_name
+                        })
+            result = {
                 'txid': tx_hash,
                 'fee': self.get_transaction_fee(tx_hash),
                 'timestamp': timestamp,
                 'date': "%16s" % time_str,
                 'value': float(value) / float(COIN) if value is not None else None,
                 'confirmations': conf,
-                'support_info': aux_tx_info['support_info'],
-                'claim_info': aux_tx_info['claim_info'],
-                'update_info': aux_tx_info['update_info']
-            })
+            }
+            if include_tip_info:
+                result['tip_info'] = tip_info
+            out.append(result)
         return out
 
     @command('w')
@@ -2126,7 +2136,7 @@ command_options = {
     'revoke': (None, "--revoke", "if true, create a new signing key and revoke the old one"),
     'val': (None, '--value', 'claim value'),
     'timeout': (None, '--timeout', 'timeout'),
-    'include_tip_info': (None, "--include_tip_info", "if true, checks the tx list for tip txns")
+    'include_tip_info': (None, "--include_tip_info", 'Include claim tip information')
 }
 
 
