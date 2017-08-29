@@ -590,12 +590,41 @@ class Commands(object):
         tx = self._mktx(outputs, tx_fee, change_addr, domain, nocheck, unsigned)
         return self.network.synchronous_get(('blockchain.transaction.broadcast', [str(tx)]))
 
-    @staticmethod
-    def _filter_name_claim_list(name_claims):
-        filtered_list = dict()
+    @command('w')
+    def get_auxilary_info_tx(self, txid):
+        info = {
+            'category': 'Unbound',
+            'name': "",
+            'claim_id': ""
+        }
 
-        def prettyCategory(category):
-            return category[0].upper() + category[1:]
+        tx = self.wallet.transactions[txid]
+        tx_outs = tx.outputs()
+
+        for nout, tx_out in enumerate(tx_outs):
+            if tx_out[0] & TYPE_SUPPORT:
+                info['category'] = 'Support'
+                claim_name, claim_id = tx_out[1][0]
+                info['name'] = claim_name
+                info['claim_id'] = encode_claim_id_hex(claim_id)
+            elif tx_out[0] & TYPE_UPDATE:
+                info['category'] = 'Update'
+                claim_name, claim_id, claim_value = tx_out[1][0]
+                info['name'] = claim_name
+                info['claim_id'] = encode_claim_id_hex(claim_id)
+            elif tx_out[0] & TYPE_CLAIM:
+                info['category'] = 'Claim'
+                claim_name, claim_value = tx_out[1][0]
+                info['name'] = claim_name
+                claim_id = claim_id_hash(rev_hex(tx.hash()).decode('hex'), nout)
+                claim_id = encode_claim_id_hex(claim_id)
+                info['claim_id'] = claim_id
+
+        return info
+
+    @staticmethod
+    def _get_tip_txns(name_claims):
+        tip_txns = set()
 
         def is_tip(address):
             for name_claim in name_claims:
@@ -611,14 +640,10 @@ class Commands(object):
             else:
                 tip = False
 
-            filtered_list[name_claim['txid']] = {
-                'type': prettyCategory(name_claim['category']),
-                'claim_id': name_claim['claim_id'],
-                'is_tip': tip,
-                'claim_name': name_claim['name']
-            }
+            if tip:
+                tip_txns.add(name_claim['txid'])
 
-        return filtered_list
+        return tip_txns
 
     @command('w')
     def history(self, include_tip_info=False):
@@ -626,20 +651,14 @@ class Commands(object):
         balance = 0
         out = []
         if include_tip_info:
-            filtered_name_claims = self._filter_name_claim_list(self.getnameclaims())
+            tip_txns = self._get_tip_txns(self.getnameclaims())
         for item in self.wallet.get_history():
             tx_hash, conf, value, timestamp, balance = item
+            aux_tx_info = self.get_auxilary_info_tx(tx_hash)
 
-            if include_tip_info and (tx_hash in filtered_name_claims):
-                tip = filtered_name_claims[tx_hash]['is_tip']
-                category = filtered_name_claims[tx_hash]['type']
-                claim_id = filtered_name_claims[tx_hash]['claim_id']
-                claim_name = filtered_name_claims[tx_hash]['claim_name']
-            else:
-                category = "Unbound"
-                claim_id = ""
-                tip = False
-                claim_name = ""
+            tip = False
+            if include_tip_info:
+                tip = True if tx_hash in tip_txns else False
 
             try:
                 time_str = datetime.datetime.fromtimestamp(timestamp).isoformat(' ')[:-3]
@@ -652,10 +671,10 @@ class Commands(object):
                 'date': "%16s" % time_str,
                 'value': float(value) / float(COIN) if value is not None else None,
                 'confirmations': conf,
-                'type': category,
-                'claim_id': claim_id,
+                'type': aux_tx_info['category'],
+                'claim_id': aux_tx_info['claim_id'],
                 'is_tip': tip,
-                'claim_name': claim_name
+                'claim_name': aux_tx_info['name']
             })
         return out
 
@@ -2078,7 +2097,7 @@ command_options = {
     'revoke': (None, "--revoke", "if true, create a new signing key and revoke the old one"),
     'val': (None, '--value', 'claim value'),
     'timeout': (None, '--timeout', 'timeout'),
-    'include_tip_info': (None, "--include_tip_info", "if true, checks the tx list for tip txns")
+    'include_tip_info': (None, "--include_tip_info", "if true, checks the tx list for tip txns(makes network call)")
 }
 
 
