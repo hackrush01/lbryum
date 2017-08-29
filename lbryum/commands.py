@@ -1356,7 +1356,7 @@ class Commands(object):
                                                [name, n]))
         return self.parse_and_validate_claim_result(result, raw=raw)
 
-    @command('w')
+    @command('wn')
     def getnameclaims(self, raw=False, include_abandoned=False, include_supports=True,
                       claim_id=None, txid=None, nout=None):
         """
@@ -2097,7 +2097,7 @@ command_options = {
     'revoke': (None, "--revoke", "if true, create a new signing key and revoke the old one"),
     'val': (None, '--value', 'claim value'),
     'timeout': (None, '--timeout', 'timeout'),
-    'include_tip_info': (None, "--include_tip_info", "if true, checks the tx list for tip txns(makes network call)")
+    'include_tip_info': (None, "--include_tip_info", "if true, checks the tx list for tip txns")
 }
 
 
