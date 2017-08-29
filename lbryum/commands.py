@@ -1356,7 +1356,7 @@ class Commands(object):
                                                [name, n]))
         return self.parse_and_validate_claim_result(result, raw=raw)
 
-    @command('w')
+    @command('wn')
     def getnameclaims(self, raw=False, include_abandoned=False, include_supports=True,
                       claim_id=None, txid=None, nout=None):
         """
