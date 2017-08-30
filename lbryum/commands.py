@@ -590,12 +590,13 @@ class Commands(object):
         tx = self._mktx(outputs, tx_fee, change_addr, domain, nocheck, unsigned)
         return self.network.synchronous_get(('blockchain.transaction.broadcast', [str(tx)]))
 
-    @command('w')
-    def get_auxilary_info_tx(self, txid):
+    @command('wn')
+    def get_auxilary_info_tx(self, txid, include_tip_info = False):
         aux_info = {
-        'support_info':[],
-        'update_info':[],
-        'claim_info':[]
+        'support_info' : [],
+        'update_info' : [],
+        'claim_info' : [],
+        'tip_info' : []
         }
 
         tx = self.wallet.transactions[txid]
@@ -603,12 +604,24 @@ class Commands(object):
 
         for nout, tx_out in enumerate(tx_outs):
             if tx_out[0] & TYPE_SUPPORT:
-                claim_name, claim_id = tx_out[1][0]
-                claim_id = encode_claim_id_hex(claim_id)
-                aux_info['support_info'].append({
-                    'claim_name' : claim_name,
-                    'claim_id' : claim_id
-                })
+                check_for_support = True
+                if include_tip_info:
+                    claim_name, claim_id = tx_out[1][0]
+                    claim_id = encode_claim_id_hex(claim_id)
+                    claim = self.getclaimbyid(claim_id)
+                    if claim['address'] == tx_out[1][1]:
+                        aux_info['tip_info'].append({
+                            'claim_name': claim_name,
+                            'claim_id': claim_id
+                        })
+                        check_for_support = False
+                if check_for_support:
+                    claim_name, claim_id = tx_out[1][0]
+                    claim_id = encode_claim_id_hex(claim_id)
+                    aux_info['support_info'].append({
+                        'claim_name' : claim_name,
+                        'claim_id' : claim_id
+                    })
 
             if tx_out[0] & TYPE_UPDATE:
                 claim_name, claim_id, claim_value = tx_out[1][0]
@@ -657,28 +670,13 @@ class Commands(object):
         out = []
         for item in self.wallet.get_history():
             tx_hash, conf, value, timestamp, balance = item
-
-            aux_tx_info = self.get_auxilary_info_tx(tx_hash)
-
-            tx = self.wallet.transactions[tx_hash]
+            aux_tx_info = self.get_auxilary_info_tx(tx_hash, include_tip_info)
 
             try:
                 time_str = datetime.datetime.fromtimestamp(timestamp).isoformat(' ')[:-3]
             except Exception:
                 time_str = "----"
 
-            tip_info = []
-
-            for nout, tx_o in enumerate(tx.outputs()):
-                if include_tip_info and tx_o[0] & TYPE_SUPPORT:
-                    supported_name, supported_claim_id = tx_o[1][0]
-                    supported_claim_id = encode_claim_id_hex(supported_claim_id)
-                    supported_claim = self.getclaimbyid(supported_claim_id)
-                    if supported_claim['address'] == tx_o[1][1]:
-                        tip_info.append({
-                            'tipped_claim_id': supported_claim_id,
-                            'tipped_claim_name': supported_name
-                        })
             result = {
                 'txid': tx_hash,
                 'fee': self.get_transaction_fee(tx_hash),
@@ -688,10 +686,9 @@ class Commands(object):
                 'confirmations': conf,
                 'support_info': aux_tx_info['support_info'],
                 'claim_info': aux_tx_info['claim_info'],
-                'update_info': aux_tx_info['update_info']
+                'update_info': aux_tx_info['update_info'],
+                'tip_info' : aux_tx_info['tip_info']
             }
-            if include_tip_info:
-                result['tip_info'] = tip_info
             out.append(result)
         return out
 
