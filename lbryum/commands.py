@@ -591,7 +591,7 @@ class Commands(object):
         return self.network.synchronous_get(('blockchain.transaction.broadcast', [str(tx)]))
 
     @command('wn')
-    def get_auxilary_info_tx(self, txid, include_tip_info = False):
+    def get_auxilary_info_tx(self, txid, include_tip_info=False):
         aux_info = {
         'support_info' : [],
         'update_info' : [],
