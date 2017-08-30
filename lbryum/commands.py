@@ -599,8 +599,7 @@ class Commands(object):
         aux_info = {
         'support_info' : [],
         'update_info' : [],
-        'claim_info' : [],
-        'tip_info' : []
+        'claim_info' : []
         }
 
         tx = self.wallet.transactions[txid]
@@ -608,31 +607,29 @@ class Commands(object):
 
         for nout, tx_out in enumerate(tx_outs):
             if tx_out[0] & TYPE_SUPPORT:
-                check_for_support = True
+                is_tip = False
+                claim_name, claim_id = tx_out[1][0]
+                claim_id = encode_claim_id_hex(claim_id)
+
                 if include_tip_info:
-                    claim_name, claim_id = tx_out[1][0]
-                    claim_id = encode_claim_id_hex(claim_id)
                     claim = self.getclaimbyid(claim_id)
                     if claim['address'] == tx_out[1][1]:
-                        aux_info['tip_info'].append({
-                            'claim_name': claim_name,
-                            'claim_id': claim_id
-                        })
-                        check_for_support = False
-                if check_for_support:
-                    claim_name, claim_id = tx_out[1][0]
-                    claim_id = encode_claim_id_hex(claim_id)
-                    aux_info['support_info'].append({
-                        'claim_name' : claim_name,
-                        'claim_id' : claim_id
-                    })
+                        is_tip = True
+
+                aux_info['support_info'].append({
+                    'claim_name' : claim_name,
+                    'claim_id' : claim_id,
+                    'is_tip' : is_tip,
+                    'amount' : float(tx_out[2]) / float(COIN)
+                })
 
             if tx_out[0] & TYPE_UPDATE:
                 claim_name, claim_id, claim_value = tx_out[1][0]
                 claim_id = encode_claim_id_hex(claim_id)
                 aux_info['update_info'].append({
                     'claim_name' : claim_name,
-                    'claim_id' : claim_id
+                    'claim_id' : claim_id,
+                    'amount' : float(tx_out[2]) / float(COIN)
                 })
 
             if tx_out[0] & TYPE_CLAIM:
@@ -641,7 +638,8 @@ class Commands(object):
                 claim_id = encode_claim_id_hex(claim_id)
                 aux_info['claim_info'].append({
                     'claim_name' : claim_name,
-                    'claim_id' : claim_id
+                    'claim_id' : claim_id,
+                    'amount' : float(tx_out[2]) / float(COIN)
                 })
 
         return aux_info
@@ -690,8 +688,7 @@ class Commands(object):
                 'confirmations': conf,
                 'support_info': aux_tx_info['support_info'],
                 'claim_info': aux_tx_info['claim_info'],
-                'update_info': aux_tx_info['update_info'],
-                'tip_info' : aux_tx_info['tip_info']
+                'update_info': aux_tx_info['update_info']
             }
             out.append(result)
         return out
