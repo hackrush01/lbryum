@@ -592,6 +592,10 @@ class Commands(object):
 
     @command('wn')
     def get_auxilary_info_tx(self, txid, include_tip_info=False):
+        """
+        Gets the additional information related to Txn history
+        """
+
         aux_info = {
         'support_info' : [],
         'update_info' : [],
