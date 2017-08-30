@@ -20,17 +20,26 @@ labeled as 2.7.1. Subsequent releases will follow
   *
 
 ### Changed
-  *
-  *
+  * `getvaluesforuri` now returns the claims in the reverse order(most recent first).
+  * Moved Enumation and BCDataStream classes into their own files
 
 ### Added
-  * Added additional fields(type, is\_tip, claim\_id) in tx history to support tipping.
-  *
+  * Added additional fields(support_info, update_info, claim_info) in tx history to support tipping.
+  * Added `get_transaction_fee` command
+  * Added `fee` field to the response for `history`
+  * Added optional `include_tip_info` argument to `history`
 
 ### Removed
   * Removed label from tx history
   *
 
+
+## [3.1.6] - 2017-08-22
+### Fixed
+ * Fix race condition in create_new_address
+
+### Changed
+ * Bumped `lbryschema` requirement to 0.0.10 [see changelog](https://github.com/lbryio/lbryschema/blob/master/CHANGELOG.md#0010---2017-08-22)
 
 ## [3.1.5] - 2017-08-04
 ### Fixed

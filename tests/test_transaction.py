@@ -1,6 +1,7 @@
 import unittest
 
 from lbryum import transaction
+from lbryum import bcd_data_stream
 from lbryum.constants import TYPE_ADDRESS
 
 unsigned_blob = '01000000012a5c9a94fcde98f5581cd00162c60a13936ceb75389ea65bf38633b424eb4031000000005701ff4c53ff0488b21e03ef2afea18000000089689bff23e1e7fb2f161daa37270a97a3d8c2e537584b2d304ecb47b86d21fc021b010d3bd425f8cf2e04824bfdf1f1f5ff1d51fadd9a41f9e3fb8dd3403b1bfe00000000ffffffff0140420f00000000001976a914230ac37834073a42146f11ef8414ae929feaafc388ac00000000'
@@ -14,7 +15,7 @@ class TestBCDataStream(unittest.TestCase):
         for v in values:
             s.write_compact_size(v)
 
-        with self.assertRaises(transaction.SerializationError):
+        with self.assertRaises(bcd_data_stream.SerializationError):
             s.write_compact_size(-1)
 
         self.assertEquals(s.input.encode('hex'),
@@ -27,7 +28,7 @@ class TestBCDataStream(unittest.TestCase):
 
     def test_string(self):
         s = transaction.BCDataStream()
-        with self.assertRaises(transaction.SerializationError):
+        with self.assertRaises(bcd_data_stream.SerializationError):
             s.read_string()
 
         msgs = ['Hello', ' ', 'World', '', '!']
@@ -36,7 +37,7 @@ class TestBCDataStream(unittest.TestCase):
         for msg in msgs:
             self.assertEquals(s.read_string(), msg)
 
-        with self.assertRaises(transaction.SerializationError):
+        with self.assertRaises(bcd_data_stream.SerializationError):
             s.read_string()
 
     def test_bytes(self):

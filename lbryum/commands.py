@@ -629,51 +629,59 @@ class Commands(object):
 
         return aux_info
 
-    @staticmethod
-    def _get_tip_txns(name_claims):
-        tip_txns = set()
+    @command('wn')
+    def get_transaction_fee(self, txid):
+        """
+        Get the fee for a transaction by txid
+        """
 
-        def is_tip(address):
-            for name_claim in name_claims:
-                if name_claim['address'] == address:
-                    if name_claim['category'] == "claim":
-                        return True
+        if txid in self.wallet.transactions:
+            tx = self.wallet.transactions[txid]
+        else:
+            tx = Transaction(self.network.synchronous_get(('blockchain.transaction.get', [txid])))
+        fee = 0
 
-            return False
-
-        for name_claim in name_claims:
-            if name_claim['category'] == "support":
-                tip = is_tip(name_claim['address'])
+        for tx_in in tx.inputs():
+            # add up the amounts for the txos used as inputs
+            if tx_in['prevout_hash'] in self.wallet.transactions:
+                spent_tx = self.wallet.transactions[tx_in['prevout_hash']]
             else:
-                tip = False
+                spent_tx = Transaction(self.network.synchronous_get(('blockchain.transaction.get',
+                                                                     [tx_in['prevout_hash']])))
+            fee += spent_tx.outputs()[tx_in['prevout_n']][2]
+        return float(Decimal(fee - tx.output_value()) / Decimal(COIN))
 
-            if tip:
-                tip_txns.add(name_claim['txid'])
-
-        return tip_txns
-
-    @command('w')
+    @command('wn')
     def history(self, include_tip_info=False):
         """Wallet history. Returns the transaction history of your wallet."""
-        balance = 0
         out = []
-        if include_tip_info:
-            tip_txns = self._get_tip_txns(self.getnameclaims())
         for item in self.wallet.get_history():
             tx_hash, conf, value, timestamp, balance = item
+
             aux_tx_info = self.get_auxilary_info_tx(tx_hash)
 
-            tip = False
-            if include_tip_info:
-                tip = True if tx_hash in tip_txns else False
+            tx = self.wallet.transactions[tx_hash]
 
             try:
                 time_str = datetime.datetime.fromtimestamp(timestamp).isoformat(' ')[:-3]
             except Exception:
                 time_str = "----"
 
-            out.append({
+            tip_info = []
+
+            for nout, tx_o in enumerate(tx.outputs()):
+                if include_tip_info and tx_o[0] & TYPE_SUPPORT:
+                    supported_name, supported_claim_id = tx_o[1][0]
+                    supported_claim_id = encode_claim_id_hex(supported_claim_id)
+                    supported_claim = self.getclaimbyid(supported_claim_id)
+                    if supported_claim['address'] == tx_o[1][1]:
+                        tip_info.append({
+                            'tipped_claim_id': supported_claim_id,
+                            'tipped_claim_name': supported_name
+                        })
+            result = {
                 'txid': tx_hash,
+                'fee': self.get_transaction_fee(tx_hash),
                 'timestamp': timestamp,
                 'date': "%16s" % time_str,
                 'value': float(value) / float(COIN) if value is not None else None,
@@ -681,7 +689,10 @@ class Commands(object):
                 'support_info': aux_tx_info['support_info'],
                 'claim_info': aux_tx_info['claim_info'],
                 'update_info': aux_tx_info['update_info']
-            })
+            }
+            if include_tip_info:
+                result['tip_info'] = tip_info
+            out.append(result)
         return out
 
     @command('w')
@@ -983,7 +994,7 @@ class Commands(object):
 
         abs_position = 0
 
-        for height in sorted(per_block_infos.keys()):
+        for height in sorted(per_block_infos.keys(), reverse=True):
             for claim_id, name in per_block_infos[height]:
                 names[claim_id] = name
                 absolute_position_index[claim_id] = abs_position
@@ -2103,7 +2114,7 @@ command_options = {
     'revoke': (None, "--revoke", "if true, create a new signing key and revoke the old one"),
     'val': (None, '--value', 'claim value'),
     'timeout': (None, '--timeout', 'timeout'),
-    'include_tip_info': (None, "--include_tip_info", "if true, checks the tx list for tip txns")
+    'include_tip_info': (None, "--include_tip_info", 'Include claim tip information')
 }
 
 

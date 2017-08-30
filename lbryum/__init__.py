@@ -9,4 +9,4 @@ handler.setFormatter(logging.Formatter(DEFAULT_FORMAT))
 log.addHandler(handler)
 log.setLevel(logging.INFO)
 
-__version__ = "3.1.5"
+__version__ = "3.1.7rc1"

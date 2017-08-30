@@ -1578,11 +1578,12 @@ class Deterministic_Wallet(Abstract_Wallet):
         return self.accounts['0']
 
     def create_new_address(self, account=None, for_change=0):
-        if account is None:
-            account = self.default_account()
-        address = account.create_new_address(for_change)
-        self.add_address(address)
-        return address
+        with self.lock:
+            if account is None:
+                account = self.default_account()
+            address = account.create_new_address(for_change)
+            self.add_address(address)
+            return address
 
     def add_address(self, address):
         if address not in self.history:
