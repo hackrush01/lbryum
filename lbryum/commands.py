@@ -592,10 +592,10 @@ class Commands(object):
 
     @command('w')
     def get_auxilary_info_tx(self, txid):
-        info = {
-            'category': 'Unbound',
-            'name': "",
-            'claim_id': ""
+        aux_info = {
+        'support_info':[],
+        'update_info':[],
+        'claim_info':[]
         }
 
         tx = self.wallet.transactions[txid]
@@ -603,24 +603,31 @@ class Commands(object):
 
         for nout, tx_out in enumerate(tx_outs):
             if tx_out[0] & TYPE_SUPPORT:
-                info['category'] = 'Support'
                 claim_name, claim_id = tx_out[1][0]
-                info['name'] = claim_name
-                info['claim_id'] = encode_claim_id_hex(claim_id)
-            elif tx_out[0] & TYPE_UPDATE:
-                info['category'] = 'Update'
+                claim_id = encode_claim_id_hex(claim_id)
+                aux_info['support_info'].append({
+                    'claim_name' : claim_name,
+                    'claim_id' : claim_id
+                })
+
+            if tx_out[0] & TYPE_UPDATE:
                 claim_name, claim_id, claim_value = tx_out[1][0]
-                info['name'] = claim_name
-                info['claim_id'] = encode_claim_id_hex(claim_id)
-            elif tx_out[0] & TYPE_CLAIM:
-                info['category'] = 'Claim'
+                claim_id = encode_claim_id_hex(claim_id)
+                aux_info['update_info'].append({
+                    'claim_name' : claim_name,
+                    'claim_id' : claim_id
+                })
+
+            if tx_out[0] & TYPE_CLAIM:
                 claim_name, claim_value = tx_out[1][0]
-                info['name'] = claim_name
                 claim_id = claim_id_hash(rev_hex(tx.hash()).decode('hex'), nout)
                 claim_id = encode_claim_id_hex(claim_id)
-                info['claim_id'] = claim_id
+                aux_info['claim_info'].append({
+                    'claim_name' : claim_name,
+                    'claim_id' : claim_id
+                })
 
-        return info
+        return aux_info
 
     @staticmethod
     def _get_tip_txns(name_claims):
@@ -671,10 +678,9 @@ class Commands(object):
                 'date': "%16s" % time_str,
                 'value': float(value) / float(COIN) if value is not None else None,
                 'confirmations': conf,
-                'type': aux_tx_info['category'],
-                'claim_id': aux_tx_info['claim_id'],
-                'is_tip': tip,
-                'claim_name': aux_tx_info['name']
+                'support_info': aux_tx_info['support_info'],
+                'claim_info': aux_tx_info['claim_info'],
+                'update_info': aux_tx_info['update_info']
             })
         return out
 
