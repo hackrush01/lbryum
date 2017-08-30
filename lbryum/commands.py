@@ -615,9 +615,9 @@ class Commands(object):
     @command('w')
     def get_auxilary_info_tx(self, txid):
         aux_info = {
-        'support_info':[],
-        'update_info':[],
-        'claim_info':[]
+        'support_info' : [],
+        'update_info' : [],
+        'claim_info' : []
         }
 
         tx = self.wallet.transactions[txid]
@@ -625,11 +625,19 @@ class Commands(object):
 
         for nout, tx_out in enumerate(tx_outs):
             if tx_out[0] & TYPE_SUPPORT:
+                is_tip = False
                 claim_name, claim_id = tx_out[1][0]
                 claim_id = encode_claim_id_hex(claim_id)
+
+                if include_tip_info:
+                    claim = self.getclaimbyid(claim_id)
+                    if claim['address'] == tx_out[1][1]:
+                        is_tip = True
+
                 aux_info['support_info'].append({
                     'claim_name' : claim_name,
-                    'claim_id' : claim_id
+                    'claim_id' : claim_id,
+                    'is_tip' : is_tip
                 })
 
             if tx_out[0] & TYPE_UPDATE:
@@ -711,6 +719,9 @@ class Commands(object):
                 'date': "%16s" % time_str,
                 'value': float(value) / float(COIN) if value is not None else None,
                 'confirmations': conf,
+                'support_info': aux_tx_info['support_info'],
+                'claim_info': aux_tx_info['claim_info'],
+                'update_info': aux_tx_info['update_info']
             }
             if include_tip_info:
                 result['tip_info'] = tip_info
